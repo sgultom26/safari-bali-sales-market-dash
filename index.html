@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Bali Safari Park — Executive Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:        #f4f0ea;
+  --surface:   #ffffff;
+  --surface2:  #f8f6f2;
+  --ink:       #191510;
+  --ink2:      #48433e;
+  --ink3:      #9a938d;
+  --rule:      #e2dcd5;
+  --rule2:     #cec8c0;
+  --forest:    #2a5c3f;
+  --forest-d:  #1e4430;
+  --forest-lt: #e6f0e9;
+  --amber:     #bf7a28;
+  --amber-lt:  #fdf2e2;
+  --crimson:   #b53030;
+  --crim-lt:   #fce8e8;
+  --slate:     #2c4870;
+  --slate-lt:  #e6edf6;
+  --serif:     'Libre Baskerville', Georgia, serif;
+  --sans:      'IBM Plex Sans', system-ui, sans-serif;
+  --mono:      'IBM Plex Mono', monospace;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ══════════════════════════════════════════
+   TOPBAR
+══════════════════════════════════════════ */
+.topbar {
+  background: var(--forest);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  position: sticky;
+  top: 0;
+  z-index: 300;
+}
+.brand { font-family: var(--serif); font-size: 16px; color: #fff; letter-spacing: .2px; }
+.brand em { font-style: normal; opacity: .5; font-size: 13px; margin-left: 10px; font-family: var(--sans); font-weight: 300; letter-spacing: .5px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.sync-time { font-family: var(--mono); font-size: 10px; color: rgba(255,255,255,.4); }
+.sync-btn {
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  color: rgba(255,255,255,.88);
+  padding: 5px 13px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: var(--sans);
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.sync-btn:hover { background: rgba(255,255,255,.2); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #7ec99b; flex-shrink: 0; }
+.dot.spin { background: var(--amber); animation: blink .5s infinite; }
+.dot.err { background: #e88; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+/* ══════════════════════════════════════════
+   SHEET SYNC BAR
+══════════════════════════════════════════ */
+.sync-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sync-bar label { font-size: 11px; color: var(--ink3); font-weight: 600; white-space: nowrap; text-transform: uppercase; letter-spacing: .8px; }
+.sync-input {
+  flex: 1;
+  min-width: 180px;
+  max-width: 480px;
+  border: 1px solid var(--rule2);
+  background: var(--surface2);
+  padding: 6px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink2);
+  border-radius: 3px;
+  outline: none;
+  transition: border-color .15s;
+}
+.sync-input:focus { border-color: var(--forest); }
+.sync-input::placeholder { color: var(--ink3); }
+.sync-go {
+  background: var(--forest);
+  color: #fff;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 3px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sync-go:hover { background: var(--forest-d); }
+.sync-hint { font-size: 11px; color: var(--ink3); }
+.sync-st { font-size: 11px; font-family: var(--mono); }
+.sync-st.ok { color: var(--forest); }
+.sync-st.err { color: var(--crimson); }
+
+/* ══════════════════════════════════════════
+   FILTER BAR
+══════════════════════════════════════════ */
+.filterbar {
+  background: var(--surface);
+  border-bottom: 2px solid var(--ink);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 44px;
+  flex-wrap: wrap;
+  row-gap: 0;
+}
+.f-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+}
+.f-sep { width: 1px; height: 20px; background: var(--rule2); margin: 0 14px; flex-shrink: 0; }
+.f-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--ink3); white-space: nowrap; }
+.pill {
+  padding: 3px 11px;
+  border-radius: 2px;
+  border: 1px solid var(--rule2);
+  background: none;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink2);
+  cursor: pointer;
+  transition: all .1s;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pill:hover { border-color: var(--ink); color: var(--ink); }
+.pill.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.search-wrap { margin-left: auto; display: flex; align-items: center; gap: 6px; padding: 8px 0; }
+.search-icon { color: var(--ink3); font-size: 13px; }
+.search {
+  border: none;
+  border-bottom: 1px solid var(--rule2);
+  background: none;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink);
+  padding: 2px 0;
+  outline: none;
+  width: 170px;
+  transition: border-color .12s;
+}
+.search:focus { border-color: var(--ink); }
+.search::placeholder { color: var(--ink3); }
+
+/* ══════════════════════════════════════════
+   TAB NAV
+══════════════════════════════════════════ */
+.tab-nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  padding: 0 24px;
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-item {
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color .12s, border-color .12s;
+  white-space: nowrap;
+  background: none;
+  border-top: none; border-left: none; border-right: none;
+  font-family: var(--sans);
+  flex-shrink: 0;
+}
+.tab-item:hover { color: var(--ink); }
+.tab-item.on { color: var(--forest); border-bottom-color: var(--forest); font-weight: 600; }
+
+/* ══════════════════════════════════════════
+   PANES
+══════════════════════════════════════════ */
+.pane { display: none; padding: 28px 24px; }
+.pane.on { display: block; }
+
+.pane-title {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+  letter-spacing: -.2px;
+}
+.pane-sub { font-size: 12px; color: var(--ink3); margin-bottom: 22px; }
+
+/* ══════════════════════════════════════════
+   ALERTS
+══════════════════════════════════════════ */
+.alert {
+  border-left: 3px solid var(--crimson);
+  background: var(--crim-lt);
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  border-radius: 0 3px 3px 0;
+}
+.alert.warn { border-color: var(--amber); background: var(--amber-lt); }
+.alert.info { border-color: var(--slate); background: var(--slate-lt); }
+.alert-head {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--crimson); margin-bottom: 3px;
+}
+.alert.warn .alert-head { color: var(--amber); }
+.alert.info .alert-head { color: var(--slate); }
+.alert-body { font-size: 13px; color: var(--ink2); line-height: 1.5; }
+.alert-body strong { color: var(--ink); }
+
+/* ══════════════════════════════════════════
+   KPI GRID
+══════════════════════════════════════════ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  margin-bottom: 24px;
+}
+.kpi-cell {
+  background: var(--surface);
+  padding: 18px 16px 14px;
+  position: relative;
+}
+.kpi-cell::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+}
+.kpi-cell.g::before { background: var(--forest); }
+.kpi-cell.a::before { background: var(--amber); }
+.kpi-cell.s::before { background: var(--slate); }
+.kpi-cell.r::before { background: var(--crimson); }
+.kpi-tag { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--ink3); margin-bottom: 7px; }
+.kpi-num { font-family: var(--serif); font-size: 26px; font-weight: 700; line-height: 1; color: var(--ink); margin-bottom: 4px; }
+.kpi-cell.g .kpi-num { color: var(--forest); }
+.kpi-cell.a .kpi-num { color: var(--amber); }
+.kpi-cell.s .kpi-num { color: var(--slate); }
+.kpi-cell.r .kpi-num { color: var(--crimson); }
+.kpi-desc { font-size: 11px; color: var(--ink3); }
+
+/* ══════════════════════════════════════════
+   CHART GRIDS
+══════════════════════════════════════════ */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+.card { background: var(--surface); border: 1px solid var(--rule); padding: 18px 18px 14px; }
+.card-head {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--ink2); margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-head span { font-family: var(--mono); font-size: 10px; font-weight: 400; color: var(--ink3); text-transform: none; letter-spacing: 0; }
+canvas { max-height: 200px !important; }
+
+/* ══════════════════════════════════════════
+   DATA TABLES
+══════════════════════════════════════════ */
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  margin-bottom: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-head {
+  padding: 13px 16px 11px;
+  border-bottom: 2px solid var(--ink);
+  display: flex; align-items: baseline; justify-content: space-between;
+  flex-wrap: wrap; gap: 4px;
+}
+.table-title { font-family: var(--serif); font-size: 14px; font-weight: 700; color: var(--ink); }
+.table-meta { font-family: var(--mono); font-size: 10px; color: var(--ink3); }
+
+table { width: 100%; border-collapse: collapse; min-width: 560px; }
+thead tr { border-bottom: 1px solid var(--rule2); }
+th {
+  padding: 8px 12px; font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--ink3);
+  text-align: left; background: var(--surface2); white-space: nowrap;
+}
+td { padding: 10px 12px; font-size: 13px; color: var(--ink2); border-bottom: 1px solid var(--rule); vertical-align: middle; }
+tr:last-child:not(.foot) td { border-bottom: none; }
+tbody tr:hover td { background: var(--surface2); }
+tr.foot td { background: var(--forest); color: #fff; font-weight: 600; font-size: 13px; border: none; }
+
+/* ══════════════════════════════════════════
+   BADGES
+══════════════════════════════════════════ */
+.badge {
+  display: inline-block; padding: 2px 6px; font-size: 9px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  border-radius: 2px; white-space: nowrap;
+}
+.b-g { background: var(--forest-lt); color: var(--forest); }
+.b-a { background: var(--amber-lt); color: var(--amber); }
+.b-r { background: var(--crim-lt); color: var(--crimson); }
+.b-s { background: var(--slate-lt); color: var(--slate); }
+.b-k { background: #f0ede8; color: var(--ink3); }
+
+/* ══════════════════════════════════════════
+   PROGRESS BAR
+══════════════════════════════════════════ */
+.bar-t { background: var(--rule); height: 4px; border-radius: 2px; display: inline-block; width: 54px; vertical-align: middle; overflow: hidden; }
+.bar-f { height: 100%; border-radius: 2px; background: var(--forest); }
+.bar-f.a { background: var(--amber); }
+.bar-f.r { background: var(--crimson); }
+
+/* ══════════════════════════════════════════
+   STAFF GRID
+══════════════════════════════════════════ */
+.staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.staff-card { background: var(--surface); border: 1px solid var(--rule); padding: 16px 18px; transition: border-color .12s; }
+.staff-card:hover { border-color: var(--forest); }
+.s-name { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 1px; }
+.s-role { font-size: 9px; color: var(--forest); font-weight: 700; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 11px; }
+.s-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 9px; }
+.s-pill { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 2px; }
+.p-done { background: var(--forest-lt); color: var(--forest); }
+.p-prog { background: var(--slate-lt); color: var(--slate); }
+.p-pend { background: var(--amber-lt); color: var(--amber); }
+.s-bar { display: flex; align-items: center; gap: 8px; }
+.s-pct { font-family: var(--mono); font-size: 10px; color: var(--ink3); }
+
+/* ══════════════════════════════════════════
+   MOBILE CARD VIEW (replaces table on small screens)
+══════════════════════════════════════════ */
+.mobile-cards { display: none; }
+.m-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.m-card-title { font-family: var(--serif); font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+.m-row { display: flex; align-items: flex-start; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--rule); }
+.m-row:last-child { border-bottom: none; }
+.m-key { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--ink3); white-space: nowrap; margin-right: 12px; padding-top: 1px; }
+.m-val { font-size: 13px; color: var(--ink2); text-align: right; }
+
+/* ══════════════════════════════════════════
+   UTILITY
+══════════════════════════════════════════ */
+.gone { display: none !important; }
+code { font-family: var(--mono); font-size: 11px; background: var(--surface2); padding: 1px 5px; border-radius: 2px; color: var(--ink2); }
+
+/* ══════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+══════════════════════════════════════════ */
+
+/* Tablet: 768px and below */
+@media (max-width: 768px) {
+  .topbar { padding: 0 16px; height: 48px; }
+  .brand em { display: none; }
+  .brand { font-size: 14px; }
+  .sync-time { display: none; }
+  .sync-btn { padding: 4px 10px; font-size: 11px; }
+
+  .sync-bar { padding: 10px 16px; }
+  .sync-hint { display: none; }
+  .sync-input { min-width: 140px; font-size: 10px; }
+
+  .filterbar { padding: 0 16px; gap: 0; }
+  .f-sep { display: none; }
+  .f-group { padding: 6px 0; flex-wrap: wrap; gap: 5px; }
+  .search-wrap { margin-left: 0; padding: 6px 0; width: 100%; }
+  .search { width: 100%; }
+  .filterbar { row-gap: 0; }
+
+  .tab-nav { padding: 0 16px; }
+  .tab-item { padding: 10px 12px; font-size: 12px; }
+
+  .pane { padding: 20px 16px; }
+  .pane-title { font-size: 19px; }
+
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .kpi-cell { padding: 14px 12px 10px; }
+  .kpi-num { font-size: 22px; }
+
+  .two-col { grid-template-columns: 1fr; gap: 12px; }
+  .card { padding: 14px 14px 10px; }
+  canvas { max-height: 180px !important; }
+
+  /* Tables → mobile cards on small screens */
+  .table-wrap table { display: none; }
+  .mobile-cards { display: block; padding: 12px 16px; }
+
+  .staff-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+}
+
+/* Phone: 480px and below */
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .kpi-num { font-size: 20px; }
+  .kpi-desc { font-size: 10px; }
+  .staff-grid { grid-template-columns: 1fr; }
+  .sync-btn span:last-child { display: none; }
+  .sync-btn::after { content: 'Sync'; font-size: 11px; }
+
+  /* Collapse filter to just pills, no labels */
+  .f-label { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── TOPBAR ─────────────────────────────────── -->
+<header class="topbar">
+  <div class="brand">Bali Safari Park <em>Executive Dashboard</em></div>
+  <div class="topbar-right">
+    <span class="sync-time" id="syncTime">Not synced</span>
+    <button class="sync-btn" onclick="loadSheet()">
+      <span class="dot" id="dot"></span>
+      <span id="btnLbl">Sync Sheet</span>
+    </button>
+  </div>
+</header>
+
+<!-- ─── GOOGLE SHEET SYNC ───────────────────────── -->
+<div class="sync-bar">
+  <label>Google Sheet ID</label>
+  <input class="sync-input" id="sheetId"
+    placeholder="Paste Sheet ID or full URL…">
+  <button class="sync-go" onclick="loadSheet()">Load Data</button>
+  <span class="sync-hint">Sheet must be published (File → Share → Publish to web → CSV)</span>
+  <span class="sync-st" id="syncSt"></span>
+</div>
+
+<!-- ─── FILTERS ──────────────────────────────────── -->
+<div class="filterbar">
+  <div class="f-group">
+    <span class="f-label">Property</span>
+    <button class="pill on" onclick="setF('prop','all',this)">All</button>
+    <button class="pill" onclick="setF('prop','MSB',this)">MSB</button>
+    <button class="pill" onclick="setF('prop','TSB',this)">TSB</button>
+  </div>
+  <div class="f-sep"></div>
+  <div class="f-group">
+    <span class="f-label">Channel</span>
+    <button class="pill on" onclick="setF('ch','all',this)">All</button>
+    <button class="pill" onclick="setF('ch','SEM',this)">SEM</button>
+    <button class="pill" onclick="setF('ch','PMAX',this)">PMAX</button>
+    <button class="pill" onclick="setF('ch','Omni',this)">Omni</button>
+    <button class="pill" onclick="setF('ch','Meta',this)">Meta</button>
+  </div>
+  <div class="search-wrap">
+    <input class="search" placeholder="Search anything…" oninput="doSearch(this.value)">
+  </div>
+</div>
+
+<!-- ─── TAB NAV ──────────────────────────────────── -->
+<nav class="tab-nav">
+  <button class="tab-item on"  onclick="goTab('overview',this)">Overview</button>
+  <button class="tab-item" onclick="goTab('ota',this)">OTA</button>
+  <button class="tab-item" onclick="goTab('ads',this)">Paid Ads</button>
+  <button class="tab-item" onclick="goTab('social',this)">Social Media</button>
+  <button class="tab-item" onclick="goTab('staff',this)">Staff Tasks</button>
+</nav>
+
+
+<!-- ══════════════════════════════════════════════
+     PANE: OVERVIEW
+══════════════════════════════════════════════ -->
+<section class="pane on" id="pane-overview">
+  <div class="pane-title">Weekly Summary</div>
+  <div class="pane-sub">Bali Safari Business Unit · April 20–26, 2026 · VP Marketing &amp; Sales</div>
+
+  <div class="alert">
+    <div class="alert-head">Action Required</div>
+    <div class="alert-body">
+      <strong>Luxury Escapes</strong>: Zero bookings — escalate contract now. ·
+      <strong>Globaltix</strong>: Only 6 bookings — follow up urgently. ·
+      <strong>KOL (MY/AU)</strong>: Blocked by pending payment approval.
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-cell g"><div class="kpi-tag">OTA Bookings</div><div class="kpi-num">2,169</div><div class="kpi-desc">7 platforms · Apr 1–28</div></div>
+    <div class="kpi-cell a"><div class="kpi-tag">OTA Revenue</div><div class="kpi-num">1.38B</div><div class="kpi-desc">IDR · Apr 1–28</div></div>
+    <div class="kpi-cell s"><div class="kpi-tag">Ad Conversions</div><div class="kpi-num">477</div><div class="kpi-desc">MSB 232 · TSB 245</div></div>
+    <div class="kpi-cell g"><div class="kpi-tag">Best CPA</div><div class="kpi-num">99K</div><div class="kpi-desc">IDR · TSB SEM</div></div>
+    <div class="kpi-cell g"><div class="kpi-tag">Social Reach</div><div class="kpi-num">560K</div><div class="kpi-desc">IG + TikTok · week</div></div>
+    <div class="kpi-cell g"><div class="kpi-tag">Avg Engagement</div><div class="kpi-num">4.1%</div><div class="kpi-desc">Above 3% benchmark</div></div>
+    <div class="kpi-cell s"><div class="kpi-tag">Top OTA</div><div class="kpi-num">Klook</div><div class="kpi-desc">801 bkgs · 609M IDR</div></div>
+    <div class="kpi-cell r"><div class="kpi-tag">At-Risk Contracts</div><div class="kpi-num">2</div><div class="kpi-desc">Globaltix + Luxury Escapes</div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-head">OTA Bookings by Platform <span>Apr 1–28</span></div>
+      <canvas id="c-ota"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-head">Ad Conversions by Channel <span>MSB vs TSB</span></div>
+      <canvas id="c-conv"></canvas>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-head">CPA by Channel (IDR) <span>Lower = better</span></div>
+      <canvas id="c-cpa"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-head">Social Reach Trend <span>Apr 20–26</span></div>
+      <canvas id="c-reach"></canvas>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     PANE: OTA
+══════════════════════════════════════════════ -->
+<section class="pane" id="pane-ota">
+  <div class="pane-title">OTA Performance</div>
+  <div class="pane-sub">April 1–28, 2026 · 7 platforms</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-cell g"><div class="kpi-tag">Total Bookings</div><div class="kpi-num" id="kpi-bkgs">2,169</div><div class="kpi-desc">All platforms</div></div>
+    <div class="kpi-cell a"><div class="kpi-tag">Total Revenue</div><div class="kpi-num" id="kpi-rev">1.38B IDR</div><div class="kpi-desc">All platforms</div></div>
+    <div class="kpi-cell s"><div class="kpi-tag">Best Platform</div><div class="kpi-num">Klook</div><div class="kpi-desc">37% of bookings</div></div>
+    <div class="kpi-cell r"><div class="kpi-tag">Inactive</div><div class="kpi-num">2</div><div class="kpi-desc">Need escalation</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-head">
+      <span class="table-title">OTA Channel Table</span>
+      <span class="table-meta" id="ota-cnt">7 records</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Platform</th><th>Bookings</th><th>Revenue (IDR)</th><th>Share</th>
+        <th>Visibility / Ranking</th><th>Contract</th><th>Action</th>
+      </tr></thead>
+      <tbody id="tb-ota">
+        <tr data-s="klook active"><td><strong>Klook</strong></td><td><strong>801</strong></td><td>609,201,000</td><td><div class="bar-t"><div class="bar-f" style="width:100%"></div></div> 37%</td><td>Top 1 &amp; 2 Traveler Favorite</td><td><span class="badge b-g">Active</span></td><td><span class="badge b-g">Maintain</span></td></tr>
+        <tr data-s="trip.com active"><td><strong>Trip.com</strong></td><td>674</td><td>521,951,000</td><td><div class="bar-t"><div class="bar-f" style="width:84%"></div></div> 31%</td><td>Top 2 Family; Top 9 Indonesia</td><td><span class="badge b-g">Active</span></td><td><span class="badge b-g">Optimize</span></td></tr>
+        <tr data-s="tiket.com active"><td><strong>Tiket.com</strong></td><td>565</td><td>139,610,000</td><td><div class="bar-t"><div class="bar-f" style="width:71%"></div></div> 26%</td><td>Top 1 Bali Things To Do (MSB)</td><td><span class="badge b-g">Active</span></td><td><span class="badge b-s">Upsell</span></td></tr>
+        <tr data-s="headout renewal pending"><td><strong>Headout</strong></td><td>88</td><td>84,636,000</td><td><div class="bar-t"><div class="bar-f a" style="width:11%"></div></div> 4%</td><td>Top 3 Best Experience Bali</td><td><span class="badge b-a">Renewal +18%</span></td><td><span class="badge b-a">Finalize</span></td></tr>
+        <tr data-s="be my guest b2b renewal"><td><strong>Be My Guest</strong></td><td>35</td><td>24,192,000</td><td><div class="bar-t"><div class="bar-f a" style="width:4%"></div></div> 2%</td><td>B2B Distribution</td><td><span class="badge b-a">Renewal +15%</span></td><td><span class="badge b-a">Sign Sheet</span></td></tr>
+        <tr data-s="globaltix at risk b2b"><td><strong>Globaltix</strong></td><td>6</td><td>5,076,000</td><td><div class="bar-t"><div class="bar-f r" style="width:1%"></div></div> 0.3%</td><td>B2B Distribution</td><td><span class="badge b-a">Awaiting Confirm.</span></td><td><span class="badge b-r">At Risk</span></td></tr>
+        <tr data-s="luxury escapes inactive zero"><td><strong>Luxury Escapes</strong></td><td>0</td><td>0</td><td><div class="bar-t"><div class="bar-f r" style="width:0%"></div></div> 0%</td><td>No ranking</td><td><span class="badge b-r">Inactive</span></td><td><span class="badge b-r">Escalate Now</span></td></tr>
+        <tr class="foot"><td>Total</td><td><strong>2,169</strong></td><td><strong>1,384,666,000</strong></td><td colspan="4">—</td></tr>
+      </tbody>
+    </table>
+    <!-- Mobile cards for OTA -->
+    <div class="mobile-cards" id="mc-ota"></div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     PANE: ADS
+══════════════════════════════════════════════ -->
+<section class="pane" id="pane-ads">
+  <div class="pane-title">Paid Ads Performance</div>
+  <div class="pane-sub">April 1–23, 2026 · MSB &amp; TSB · All channels</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-cell g"><div class="kpi-tag">Best CTR</div><div class="kpi-num">12.78%</div><div class="kpi-desc">MSB SEM</div></div>
+    <div class="kpi-cell a"><div class="kpi-tag">Most Conversions</div><div class="kpi-num">123</div><div class="kpi-desc">TSB Omni</div></div>
+    <div class="kpi-cell g"><div class="kpi-tag">Lowest CPA</div><div class="kpi-num">99K</div><div class="kpi-desc">TSB SEM · IDR</div></div>
+    <div class="kpi-cell r"><div class="kpi-tag">Worst CPA</div><div class="kpi-num">247K</div><div class="kpi-desc">TSB Meta → Reposition</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-head">
+      <span class="table-title">Channel Performance</span>
+      <span class="table-meta" id="ads-cnt">8 records</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Property</th><th>Channel</th><th>Impressions</th><th>Clicks</th>
+        <th>CTR</th><th>Conversions</th><th>CPA (IDR)</th><th>Quality</th><th>Recommendation</th>
+      </tr></thead>
+      <tbody id="tb-ads">
+        <tr data-prop="MSB" data-ch="SEM"  data-s="msb sem google"><td><span class="badge b-g">MSB</span></td><td><strong>SEM</strong></td><td>10,075</td><td>1,288</td><td style="color:var(--forest);font-weight:700">12.78%</td><td>62</td><td>119,534</td><td><span class="badge b-g">Highest</span></td><td style="color:var(--forest);font-weight:600;font-size:12px">↑ Scale aggressively</td></tr>
+        <tr data-prop="MSB" data-ch="PMAX" data-s="msb pmax google"><td><span class="badge b-g">MSB</span></td><td><strong>PMAX</strong></td><td>15,314</td><td>1,113</td><td>7.27%</td><td>42</td><td>126,418</td><td><span class="badge b-g">High</span></td><td style="color:var(--forest);font-weight:600;font-size:12px">↑ Budget +15–20%</td></tr>
+        <tr data-prop="MSB" data-ch="Omni" data-s="msb omni cpc"><td><span class="badge b-g">MSB</span></td><td><strong>Omni CPC</strong></td><td>221,399</td><td>3,558</td><td>1.61%</td><td><strong>116</strong></td><td>130,636</td><td><span class="badge b-a">Med–High</span></td><td style="color:var(--amber);font-weight:600;font-size:12px">⟳ Refresh creatives</td></tr>
+        <tr data-prop="MSB" data-ch="Meta" data-s="msb meta facebook"><td><span class="badge b-g">MSB</span></td><td><strong>Meta</strong></td><td>1,157,000</td><td>—</td><td style="color:var(--crimson)">0.59%</td><td>12</td><td style="color:var(--crimson)">202,650</td><td><span class="badge b-r">Low</span></td><td style="color:var(--crimson);font-weight:600;font-size:12px">⚠ Reposition TOF</td></tr>
+        <tr data-prop="TSB" data-ch="SEM"  data-s="tsb sem google"><td><span class="badge b-s">TSB</span></td><td><strong>SEM</strong></td><td>14,443</td><td>1,499</td><td style="color:var(--forest);font-weight:700">10.38%</td><td>67</td><td style="color:var(--forest);font-weight:700">99,457</td><td><span class="badge b-g">Highest</span></td><td style="color:var(--forest);font-weight:600;font-size:12px">↑ Core channel</td></tr>
+        <tr data-prop="TSB" data-ch="PMAX" data-s="tsb pmax google"><td><span class="badge b-s">TSB</span></td><td><strong>PMAX</strong></td><td>11,608</td><td>1,363</td><td style="color:var(--forest);font-weight:700">11.74%</td><td>48</td><td>105,251</td><td><span class="badge b-g">Very High</span></td><td style="color:var(--forest);font-weight:600;font-size:12px">↑ Scale +15–25%</td></tr>
+        <tr data-prop="TSB" data-ch="Omni" data-s="tsb omni cpc"><td><span class="badge b-s">TSB</span></td><td><strong>Omni CPC</strong></td><td>334,817</td><td>4,033</td><td>1.20%</td><td><strong>123</strong></td><td>110,195</td><td><span class="badge b-g">High</span></td><td style="color:var(--forest);font-weight:600;font-size:12px">↑ Increase budget</td></tr>
+        <tr data-prop="TSB" data-ch="Meta" data-s="tsb meta facebook"><td><span class="badge b-s">TSB</span></td><td><strong>Meta</strong></td><td>308,766</td><td>1,171</td><td style="color:var(--crimson)">0.38%</td><td>7</td><td style="color:var(--crimson)">247,406</td><td><span class="badge b-r">Low</span></td><td style="color:var(--crimson);font-weight:600;font-size:12px">⚠ Shift to reach KPI</td></tr>
+      </tbody>
+    </table>
+    <div class="mobile-cards" id="mc-ads"></div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     PANE: SOCIAL
+══════════════════════════════════════════════ -->
+<section class="pane" id="pane-social">
+  <div class="pane-title">Social Media</div>
+  <div class="pane-sub">April 20–26, 2026 · Instagram &amp; TikTok</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-cell g"><div class="kpi-tag">Total Reach</div><div class="kpi-num">560K</div><div class="kpi-desc">IG + TikTok</div></div>
+    <div class="kpi-cell s"><div class="kpi-tag">Total Views</div><div class="kpi-num">452K</div><div class="kpi-desc">All posts</div></div>
+    <div class="kpi-cell g"><div class="kpi-tag">Avg ER%</div><div class="kpi-num">4.1%</div><div class="kpi-desc">Above 3% benchmark</div></div>
+    <div class="kpi-cell a"><div class="kpi-tag">Best Post</div><div class="kpi-num">95K</div><div class="kpi-desc">Visitor Reel · Apr 26</div></div>
+  </div>
+
+  <div class="alert warn">
+    <div class="alert-head">Pending Items — Akbar</div>
+    <div class="alert-body">
+      <strong>KOL (MY/AU)</strong>: 2 IG Reels + 2 TikToks ready, blocked by payment. ·
+      <strong>May Editorial</strong>: Not started — vendor on hold. ·
+      <strong>April Editorial</strong>: Incomplete visuals from vendor.
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-head">
+      <span class="table-title">Weekly Content Performance</span>
+      <span class="table-meta">7 posts</span>
+    </div>
+    <table>
+      <thead><tr><th>Date</th><th>Platform</th><th>Topic</th><th>Objective</th><th>Reach</th><th>Views</th><th>Engagement</th><th>ER%</th><th>Next Action</th></tr></thead>
+      <tbody id="tb-social">
+        <tr><td>Apr 20</td><td><span class="badge b-a">TikTok</span></td><td>Penguin Tunnel POV</td><td>Awareness</td><td>65,000</td><td>52,000</td><td>2,600</td><td>4.0%</td><td style="font-size:12px">Optimize hook</td></tr>
+        <tr><td>Apr 21</td><td><span class="badge b-s">Instagram</span></td><td>Rhino Package Story</td><td>Engagement</td><td>70,000</td><td>56,200</td><td>2,820</td><td>4.0%</td><td style="font-size:12px">Push to web CTA</td></tr>
+        <tr><td>Apr 22</td><td><span class="badge b-s">Instagram</span></td><td>Family Feeding Moment</td><td>Intent</td><td>75,000</td><td>60,400</td><td>3,040</td><td>4.1%</td><td style="font-size:12px">Scale to booking</td></tr>
+        <tr><td>Apr 23</td><td><span class="badge b-a">TikTok</span></td><td>Night Safari Hook</td><td>Awareness</td><td>80,000</td><td>64,600</td><td>3,260</td><td>4.1%</td><td style="font-size:12px">Boost with paid</td></tr>
+        <tr><td>Apr 24</td><td><span class="badge b-s">Instagram</span></td><td>Varuna Dining Show</td><td>Engagement</td><td>85,000</td><td>68,800</td><td>3,480</td><td>4.1%</td><td style="font-size:12px">Dining booking link</td></tr>
+        <tr><td>Apr 25</td><td><span class="badge b-a">TikTok</span></td><td>Marine Safari Funfact</td><td>Intent</td><td>90,000</td><td>73,000</td><td>3,700</td><td>4.1%</td><td style="font-size:12px">SEM retargeting</td></tr>
+        <tr><td>Apr 26</td><td><span class="badge b-s">Instagram</span></td><td>Visitor Reaction Reel</td><td>Awareness</td><td>95,000</td><td>77,200</td><td>3,920</td><td>4.1%</td><td style="font-size:12px">Test paid boost</td></tr>
+        <tr class="foot"><td>Total</td><td>—</td><td>—</td><td>—</td><td><strong>560,000</strong></td><td><strong>452,200</strong></td><td><strong>22,820</strong></td><td><strong>~4.1%</strong></td><td>—</td></tr>
+      </tbody>
+    </table>
+    <div class="mobile-cards" id="mc-social"></div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     PANE: STAFF
+══════════════════════════════════════════════ -->
+<section class="pane" id="pane-staff">
+  <div class="pane-title">Staff Task Tracker</div>
+  <div class="pane-sub">April–May 2026 · 7 team members · Marketing &amp; Sales</div>
+
+  <div class="staff-grid">
+    <div class="staff-card">
+      <div class="s-name">Rafi</div><div class="s-role">Digital Ads &amp; Paid Media</div>
+      <div class="s-pills"><span class="s-pill p-prog">8 Ongoing</span></div>
+      <div class="s-bar"><div class="bar-t" style="width:80px"><div class="bar-f" style="width:100%"></div></div><span class="s-pct">100% · All 8 markets live</span></div>
+    </div>
+    <div class="staff-card">
+      <div class="s-name">Akbar</div><div class="s-role">Social Media &amp; KOL</div>
+      <div class="s-pills"><span class="s-pill p-done">3 Done</span><span class="s-pill p-prog">2 Ongoing</span><span class="s-pill p-pend">3 Pending</span></div>
+      <div class="s-bar"><div class="bar-t" style="width:80px"><div class="bar-f a" style="width:63%"></div></div><span class="s-pct">63% · KOL blocked by payment</span></div>
+    </div>
+    <div class="staff-card">
+      <div class="s-name">Bayu</div><div class="s-role">OTA Partnerships</div>
+      <div class="s-pills"><span class="s-pill p-prog">5 In Progress</span></div>
+      <div class="s-bar"><div class="bar-t" style="width:80px"><div class="bar-f a" style="width:60%"></div></div><span class="s-pct">60% · 2 contracts at risk</span></div>
+    </div>
+    <div class="staff-card">
+      <div class="s-name">Arta</div><div class="s-role">Creative Content</div>
+      <div class="s-pills"><span class="s-pill p-done">4 Done</span><span class="s-pill p-prog">3 In Progress</span><span class="s-pill p-pend">2 Review</span></div>
+      <div class="s-bar"><div class="bar-t" style="width:80px"><div class="bar-f" style="width:67%"></div></div><span class="s-pct">67% · Video packages active</span></div>
+    </div>
+    <div class="staff-card">
+      <div class="s-name">Teguh</div><div class="s-role">Graphic Design</div>
+      <div class="s-pills"><span class="s-pill p-done">5 Done</span><span class="s-pill p-prog">3 In Progress</span><span class="s-pill p-pend">4 Review</span></div>
+      <div class="s-bar"><div class="bar-t" style="width:80px"><div class="bar-f" style="width:67%"></div></div><span class="s-pct">67% · 4 items under review</span></div>
+    </div>
+    <div class="staff-card">
+      <div class="s-name">Wulan</div><div class="s-role">Admin &amp; Monitoring</div>
+      <div class="s-pills"><span class="s-pill p-done">8 Done</span><span class="s-pill p-prog">7 Ongoing</span><span class="s-pill p-pend">6 Pending</span></div>
+      <div class="s-bar"><div class="bar-t" style="width:80px"><div class="bar-f a" style="width:62%"></div></div><span class="s-pct">62% · SPK queue awaiting TTD</span></div>
+    </div>
+    <div class="staff-card">
+      <div class="s-name">Muti</div><div class="s-role">Partnership &amp; Branding</div>
+      <div class="s-pills"><span class="s-pill p-done">9 Done</span><span class="s-pill p-prog">7 Ongoing</span><span class="s-pill p-pend">2 Planning</span></div>
+      <div class="s-bar"><div class="bar-t" style="width:80px"><div class="bar-f" style="width:78%"></div></div><span class="s-pct">78% · Strong progress</span></div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-head">
+      <span class="table-title">Priority Pending Items</span>
+      <span class="table-meta">CEO attention needed</span>
+    </div>
+    <table>
+      <thead><tr><th>Staff</th><th>Item</th><th>Status</th><th>Blocker</th><th>Action Required</th></tr></thead>
+      <tbody>
+        <tr><td>Akbar</td><td>KOL Campaign (MY/AU)</td><td><span class="badge b-r">Payment Blocked</span></td><td>Payment not released</td><td>Release payment now</td></tr>
+        <tr><td>Akbar</td><td>May Editorial Plan</td><td><span class="badge b-r">On Hold</span></td><td>Vendor pending payment</td><td>Approve budget to unblock</td></tr>
+        <tr><td>Bayu</td><td>Luxury Escapes Renewal</td><td><span class="badge b-r">At Risk</span></td><td>Platform not responding</td><td>Escalate or deactivate</td></tr>
+        <tr><td>Bayu</td><td>Globaltix Renewal</td><td><span class="badge b-a">Waiting</span></td><td>No platform update</td><td>Set response deadline</td></tr>
+        <tr><td>Wulan</td><td>6 SPK / SOS Documents</td><td><span class="badge b-a">Pending Signature</span></td><td>Awaiting Bu Puri TTD</td><td>Prioritize signing queue</td></tr>
+        <tr><td>Teguh</td><td>4 Design Outputs</td><td><span class="badge b-a">Under Review</span></td><td>GM/Pak Hans review</td><td>Expedite approval</td></tr>
+      </tbody>
+    </table>
+    <div class="mobile-cards" id="mc-staff"></div>
+  </div>
+</section>
+
+
+<script>
+/* ════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════ */
+function goTab(id, el) {
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('on'));
+  document.getElementById('pane-' + id).classList.add('on');
+  el.classList.add('on');
+  window.scrollTo(0, 0);
+}
+
+/* ════════════════════════════════════════
+   MOBILE CARDS — generate from table rows
+════════════════════════════════════════ */
+function buildMobileCards() {
+  // OTA
+  buildMC('tb-ota', 'mc-ota', row => {
+    const cells = row.cells;
+    return {
+      title: cells[0]?.innerText,
+      badge: cells[6]?.innerHTML,
+      rows: [
+        ['Bookings', cells[1]?.innerText],
+        ['Revenue (IDR)', cells[2]?.innerText],
+        ['Share', cells[3]?.innerText?.trim()],
+        ['Ranking', cells[4]?.innerText],
+        ['Contract', cells[5]?.innerHTML],
+      ]
+    };
+  });
+
+  // Ads
+  buildMC('tb-ads', 'mc-ads', row => {
+    const cells = row.cells;
+    return {
+      title: (cells[0]?.innerText || '') + ' ' + (cells[1]?.innerText || ''),
+      badge: cells[7]?.innerHTML,
+      rows: [
+        ['Impressions', cells[2]?.innerText],
+        ['Clicks', cells[3]?.innerText],
+        ['CTR', cells[4]?.innerHTML],
+        ['Conversions', cells[5]?.innerText],
+        ['CPA (IDR)', cells[6]?.innerHTML],
+        ['Recommendation', cells[8]?.innerHTML],
+      ]
+    };
+  });
+
+  // Social
+  buildMC('tb-social', 'mc-social', row => {
+    const cells = row.cells;
+    return {
+      title: cells[2]?.innerText,
+      badge: cells[1]?.innerHTML,
+      rows: [
+        ['Date', cells[0]?.innerText],
+        ['Objective', cells[3]?.innerText],
+        ['Reach', cells[4]?.innerText],
+        ['Views', cells[5]?.innerText],
+        ['Engagement', cells[6]?.innerText],
+        ['ER%', cells[7]?.innerText],
+        ['Next Action', cells[8]?.innerHTML],
+      ]
+    };
+  });
+
+  // Staff pending
+  buildMC(null, 'mc-staff', null, [
+    {title:'KOL Campaign (MY/AU)',badge:'<span class="badge b-r">Payment Blocked</span>',rows:[['Staff','Akbar'],['Blocker','Payment not released'],['Action','Release payment now']]},
+    {title:'May Editorial Plan',badge:'<span class="badge b-r">On Hold</span>',rows:[['Staff','Akbar'],['Blocker','Vendor pending payment'],['Action','Approve budget']]},
+    {title:'Luxury Escapes Renewal',badge:'<span class="badge b-r">At Risk</span>',rows:[['Staff','Bayu'],['Blocker','Platform not responding'],['Action','Escalate or deactivate']]},
+    {title:'Globaltix Renewal',badge:'<span class="badge b-a">Waiting</span>',rows:[['Staff','Bayu'],['Blocker','No platform update'],['Action','Set response deadline']]},
+    {title:'6 SPK / SOS Documents',badge:'<span class="badge b-a">Pending Signature</span>',rows:[['Staff','Wulan'],['Blocker','Awaiting Bu Puri TTD'],['Action','Prioritize signing']]},
+    {title:'4 Design Outputs',badge:'<span class="badge b-a">Under Review</span>',rows:[['Staff','Teguh'],['Blocker','GM/Pak Hans review'],['Action','Expedite approval']]},
+  ]);
+}
+
+function buildMC(tbodyId, mcId, mapFn, staticData) {
+  const mc = document.getElementById(mcId);
+  if (!mc) return;
+  mc.innerHTML = '';
+  let items = staticData;
+  if (!items && tbodyId) {
+    const tb = document.getElementById(tbodyId);
+    if (!tb) return;
+    items = Array.from(tb.querySelectorAll('tr:not(.foot)')).map(mapFn).filter(Boolean);
+  }
+  items.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'm-card';
+    d.innerHTML = `<div class="m-card-title"><span>${item.title || '—'}</span>${item.badge || ''}</div>` +
+      item.rows.filter(r=>r[1]).map(r => `<div class="m-row"><span class="m-key">${r[0]}</span><span class="m-val">${r[1]}</span></div>`).join('');
+    mc.appendChild(d);
+  });
+}
+
+/* ════════════════════════════════════════
+   FILTERS
+════════════════════════════════════════ */
+const F = { prop: 'all', ch: 'all', q: '' };
+
+function setF(k, v, btn) {
+  F[k] = v;
+  btn.parentElement.querySelectorAll('.pill').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  applyF();
+}
+function doSearch(v) { F.q = v.toLowerCase(); applyF(); }
+
+function applyF() {
+  filtTb('tb-ads', 'ads-cnt', r => {
+    const p = F.prop === 'all' || (r.dataset.prop || '') === F.prop;
+    const c = F.ch === 'all' || (r.dataset.ch || '').toLowerCase() === F.ch.toLowerCase();
+    const q = !F.q || (r.dataset.s || '').includes(F.q) || r.innerText.toLowerCase().includes(F.q);
+    return p && c && q;
+  });
+  filtTb('tb-ota', 'ota-cnt', r => {
+    const q = !F.q || (r.dataset.s || '').includes(F.q) || r.innerText.toLowerCase().includes(F.q);
+    return q;
+  });
+}
+
+function filtTb(tbId, cntId, fn) {
+  const tb = document.getElementById(tbId); if (!tb) return;
+  let n = 0;
+  tb.querySelectorAll('tr:not(.foot)').forEach(r => {
+    const show = fn(r); r.classList.toggle('gone', !show); if (show) n++;
+  });
+  const el = document.getElementById(cntId); if (el) el.textContent = n + ' records';
+}
+
+/* ════════════════════════════════════════
+   GOOGLE SHEET SYNC
+════════════════════════════════════════ */
+function getSheetId() {
+  const v = document.getElementById('sheetId').value.trim();
+  const m = v.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : v;
+}
+function csvUrl(id, tab) {
+  return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+}
+async function getCSV(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return parseCSV(await r.text());
+}
+function parseCSV(txt) {
+  const lines = txt.trim().split('\n');
+  const hdrs = splitLine(lines[0]).map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+  return lines.slice(1).map(l => {
+    const v = splitLine(l), o = {};
+    hdrs.forEach((h, i) => o[h] = (v[i] || '').trim().replace(/^"|"$/g, ''));
+    return o;
+  }).filter(r => Object.values(r).some(v => v));
+}
+function splitLine(l) {
+  const res = []; let cur = '', q = false;
+  for (const c of l) {
+    if (c === '"') q = !q;
+    else if (c === ',' && !q) { res.push(cur); cur = ''; }
+    else cur += c;
+  }
+  res.push(cur);
+  return res.map(s => s.replace(/^"|"$/g, ''));
+}
+const num = v => { const x = parseFloat(String(v || '').replace(/[^0-9.\-]/g, '')); return isNaN(x) ? 0 : x; };
+const fmt = v => Number(v).toLocaleString();
+
+async function loadSheet() {
+  const id = getSheetId();
+  const dot = document.getElementById('dot');
+  const btn = document.getElementById('btnLbl');
+  const st  = document.getElementById('syncSt');
+  if (!id) { st.textContent = '⚠ Enter a Sheet ID first'; st.className = 'sync-st err'; return; }
+  dot.className = 'dot spin'; btn.textContent = 'Syncing…'; st.textContent = '';
+  try {
+    const [ota, ads, soc] = await Promise.all([
+      getCSV(csvUrl(id, 'OTA_Data')).catch(() => null),
+      getCSV(csvUrl(id, 'Ads_Data')).catch(() => null),
+      getCSV(csvUrl(id, 'Social_Data')).catch(() => null),
+    ]);
+    let ok = 0;
+    if (ota?.length) { renderOTA(ota); ok++; }
+    if (ads?.length) { renderAds(ads); ok++; }
+    if (soc?.length) { renderSocial(soc); ok++; }
+    if (!ok) throw new Error('No data found. Check tab names: OTA_Data, Ads_Data, Social_Data');
+    rebuildCharts();
+    buildMobileCards();
+    const now = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    document.getElementById('syncTime').textContent = 'Synced ' + now;
+    dot.className = 'dot'; btn.textContent = 'Sync Sheet';
+    st.textContent = '✓ ' + ok + '/3 tabs loaded'; st.className = 'sync-st ok';
+  } catch (e) {
+    dot.className = 'dot err'; btn.textContent = 'Sync Sheet';
+    st.textContent = '✗ ' + e.message; st.className = 'sync-st err';
+  }
+}
+
+function renderOTA(rows) {
+  const tb = document.getElementById('tb-ota'); if (!tb) return;
+  Array.from(tb.querySelectorAll('tr:not(.foot)')).forEach(r => r.remove());
+  let tB = 0, tR = 0;
+  const maxB = Math.max(...rows.map(r => num(r.bookings)), 1);
+  rows.forEach(r => {
+    const b = num(r.bookings), rev = num(r.revenue_idr);
+    tB += b; tR += rev;
+    const pct = Math.round(b / maxB * 100);
+    const s = (r.status || '').toLowerCase();
+    const bc = s.includes('active') ? 'b-g' : (s.includes('inactive') || b === 0) ? 'b-r' : s.includes('renew') ? 'b-a' : 'b-k';
+    const fc = b === 0 ? 'r' : b < 50 ? 'a' : '';
+    const tr = document.createElement('tr');
+    tr.dataset.s = (r.ota_platform + ' ' + (r.status || '')).toLowerCase();
+    tr.innerHTML = `<td><strong>${r.ota_platform || '—'}</strong></td><td>${fmt(b)}</td><td>${fmt(rev)}</td>
+      <td><div class="bar-t"><div class="bar-f ${fc}" style="width:${pct}%"></div></div></td>
+      <td>${r.ranking_visibility || '—'}</td>
+      <td><span class="badge ${bc}">${r.status || '—'}</span></td>
+      <td>${r.notes || '—'}</td>`;
+    tb.insertBefore(tr, tb.querySelector('.foot'));
+  });
+  const f = tb.querySelector('.foot');
+  if (f) { f.cells[1].textContent = fmt(tB); f.cells[2].textContent = fmt(tR); }
+  const k1 = document.getElementById('kpi-bkgs'), k2 = document.getElementById('kpi-rev');
+  if (k1) k1.textContent = fmt(tB);
+  if (k2) k2.textContent = (tR / 1e9).toFixed(2) + 'B IDR';
+  window._ota = rows;
+}
+
+function renderAds(rows) {
+  const tb = document.getElementById('tb-ads'); if (!tb) return;
+  tb.innerHTML = '';
+  rows.forEach(r => {
+    const prop = r.property || '', ch = r.channel || '';
+    const ctr = num(r.ctr_pct), cpa = num(r.cpa_idr);
+    const cc = ctr > 8 ? 'color:var(--forest);font-weight:700' : ctr < 2 ? 'color:var(--crimson)' : '';
+    const pc = cpa < 120000 ? 'color:var(--forest);font-weight:700' : cpa > 200000 ? 'color:var(--crimson)' : '';
+    const pb = prop === 'MSB' ? 'b-g' : 'b-s';
+    const tr = document.createElement('tr');
+    tr.dataset.prop = prop; tr.dataset.ch = ch;
+    tr.dataset.s = (prop + ' ' + ch + ' ' + (r.campaign || '')).toLowerCase();
+    tr.innerHTML = `<td><span class="badge ${pb}">${prop}</span></td><td><strong>${ch}</strong></td>
+      <td>${fmt(num(r.impressions))}</td><td>${r.clicks ? fmt(num(r.clicks)) : '—'}</td>
+      <td style="${cc}">${r.ctr_pct || '—'}</td><td>${r.conversions || '—'}</td>
+      <td style="${pc}">${fmt(cpa)}</td><td>—</td><td>—</td>`;
+    tb.appendChild(tr);
+  });
+  window._ads = rows;
+}
+
+function renderSocial(rows) {
+  const tb = document.getElementById('tb-social'); if (!tb) return;
+  const foot = tb.querySelector('.foot');
+  Array.from(tb.querySelectorAll('tr:not(.foot)')).forEach(r => r.remove());
+  rows.forEach(r => {
+    const pb = (r.platform || '').toLowerCase().includes('tiktok') ? 'b-a' : 'b-s';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.date || '—'}</td><td><span class="badge ${pb}">${r.platform || '—'}</span></td>
+      <td>${r.topic || '—'}</td><td>—</td>
+      <td>${fmt(num(r.reach))}</td><td>${fmt(num(r.views))}</td>
+      <td>${fmt(num(r.engagement))}</td><td>${r.er_pct || '—'}</td><td>—</td>`;
+    if (foot) tb.insertBefore(tr, foot); else tb.appendChild(tr);
+  });
+  window._soc = rows;
+}
+
+/* ════════════════════════════════════════
+   CHARTS
+════════════════════════════════════════ */
+const CO = { G:'#2a5c3f', G2:'rgba(42,92,63,.13)', A:'#bf7a28', CR:'#b53030', S:'#2c4870', S2:'rgba(44,72,112,.11)', MU:'#9a938d', GR:'#ede8e2' };
+Chart.defaults.font.family = "'IBM Plex Sans', system-ui, sans-serif";
+Chart.defaults.color = CO.MU;
+Chart.defaults.borderColor = '#e2dcd5';
+Chart.defaults.plugins.legend.labels.boxWidth = 10;
+Chart.defaults.plugins.legend.labels.padding = 12;
+
+const charts = {};
+const TICK = { color: CO.MU, font: { size: 11 } };
+const GRID = { color: CO.GR };
+
+function mkChart(id, cfg) {
+  const el = document.getElementById(id); if (!el) return null;
+  return new Chart(el, cfg);
+}
+
+function buildCharts() {
+  charts.ota = mkChart('c-ota', { type: 'bar', data: {
+    labels: ['Klook','Trip.com','Tiket.com','Headout','Be My Guest','Globaltix','Luxury Escapes'],
+    datasets: [{ data: [801,674,565,88,35,6,0], backgroundColor: [CO.G,CO.G,CO.G,CO.A,CO.A,CO.CR,CO.CR], borderRadius: 3, borderSkipped: false }]
+  }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: GRID, ticks: { ...TICK, font:{size:10} } }, y: { grid: GRID, ticks: TICK } } }});
+
+  charts.conv = mkChart('c-conv', { type: 'bar', data: {
+    labels: ['SEM','PMAX','Omni','Meta'],
+    datasets: [
+      { label: 'MSB', data: [62,42,116,12], backgroundColor: CO.G, borderRadius: 3, borderSkipped: false },
+      { label: 'TSB', data: [67,48,123,7],  backgroundColor: CO.S, borderRadius: 3, borderSkipped: false },
+    ]
+  }, options: { responsive: true, plugins: { legend: { labels: { color: CO.MU } } }, scales: { x: { grid: GRID, ticks: TICK }, y: { grid: GRID, ticks: TICK } } }});
+
+  charts.cpa = mkChart('c-cpa', { type: 'bar', data: {
+    labels: ['TSB SEM','TSB PMAX','TSB Omni','MSB SEM','MSB PMAX','MSB Omni','MSB Meta','TSB Meta'],
+    datasets: [{ data: [99457,105251,110195,119534,126418,130636,202650,247406],
+      backgroundColor: ctx => ctx.raw < 115000 ? CO.G : ctx.raw < 160000 ? CO.A : CO.CR,
+      borderRadius: 3 }]
+  }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } },
+    scales: { x: { grid: GRID, ticks: { ...TICK, callback: v => (v/1000)+'K' } }, y: { grid: { display:false }, ticks: { ...TICK, font:{size:10} } } } }});
+
+  charts.reach = mkChart('c-reach', { type: 'line', data: {
+    labels: ['Apr 20','Apr 21','Apr 22','Apr 23','Apr 24','Apr 25','Apr 26'],
+    datasets: [
+      { label:'Reach', data:[65000,70000,75000,80000,85000,90000,95000], borderColor:CO.G, backgroundColor:CO.G2, fill:true, tension:.38, pointBackgroundColor:CO.G, pointRadius:4, pointBorderWidth:0 },
+      { label:'Views', data:[52000,56200,60400,64600,68800,73000,77200], borderColor:CO.S, backgroundColor:CO.S2, fill:true, tension:.38, pointBackgroundColor:CO.S, pointRadius:3, pointBorderWidth:0 },
+    ]
+  }, options: { responsive: true, plugins: { legend: { labels: { color: CO.MU } } },
+    scales: { x: { grid:{display:false}, ticks: { ...TICK, font:{size:10} } }, y: { grid: GRID, ticks: { ...TICK, callback: v => (v/1000)+'K' } } } }});
+}
+
+function rebuildCharts() {
+  if (window._ota && charts.ota) {
+    charts.ota.data.labels = window._ota.map(r => r.ota_platform);
+    charts.ota.data.datasets[0].data = window._ota.map(r => num(r.bookings));
+    charts.ota.data.datasets[0].backgroundColor = window._ota.map(r => {
+      const s = (r.status || '').toLowerCase();
+      return s.includes('active') ? CO.G : num(r.bookings) === 0 ? CO.CR : CO.A;
+    });
+    charts.ota.update();
+  }
+  if (window._ads) {
+    const msb = window._ads.filter(r => r.property === 'MSB');
+    const tsb = window._ads.filter(r => r.property === 'TSB');
+    const chs = [...new Set(window._ads.map(r => r.channel))];
+    if (charts.conv) {
+      charts.conv.data.labels = chs;
+      charts.conv.data.datasets[0].data = chs.map(c => num((msb.find(r=>r.channel===c)||{}).conversions));
+      charts.conv.data.datasets[1].data = chs.map(c => num((tsb.find(r=>r.channel===c)||{}).conversions));
+      charts.conv.update();
+    }
+    if (charts.cpa) {
+      const sorted = [...window._ads].sort((a,b) => num(a.cpa_idr) - num(b.cpa_idr));
+      charts.cpa.data.labels = sorted.map(r => r.property + ' ' + r.channel);
+      charts.cpa.data.datasets[0].data = sorted.map(r => num(r.cpa_idr));
+      charts.cpa.update();
+    }
+  }
+  if (window._soc && charts.reach) {
+    charts.reach.data.labels = window._soc.map(r => r.date);
+    charts.reach.data.datasets[0].data = window._soc.map(r => num(r.reach));
+    charts.reach.data.datasets[1].data = window._soc.map(r => num(r.views));
+    charts.reach.update();
+  }
+}
+
+/* ── INIT ── */
+buildCharts();
+buildMobileCards();
+</script>
+</body>
+</html>
